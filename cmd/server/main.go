@@ -40,8 +40,9 @@ func main() {
 
 	profiles := profile.NewStore(firestoreClient)
 	verifier := auth.New(authClient)
+	identity := auth.NewIdentityService(os.Getenv("FIREBASE_WEB_API_KEY"))
 	hub := realtime.NewHub(profiles)
-	handler := api.NewServer(profiles, verifier, hub, os.Getenv("FRONTEND_ORIGIN")).Router()
+	handler := api.NewServer(profiles, verifier, identity, authClient, hub, os.Getenv("FRONTEND_ORIGIN")).Router()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

@@ -7,6 +7,7 @@ Players never decide whether a move is legal. The frontend submits a move path a
 ## What The Server Handles
 
 - Firebase ID-token verification
+- Backend-mediated email/password registration, login, and token refresh
 - Unique profile creation
 - Firestore profile and leaderboard data
 - Casual and ranked matchmaking queues
@@ -51,6 +52,7 @@ Copy `.env.example` to `.env.local` as a reference. The Go process reads operati
 PORT=8080
 FRONTEND_ORIGIN=http://localhost:4200
 FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_WEB_API_KEY=your-firebase-web-api-key
 FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"your-project-id"}
 ```
 
@@ -95,13 +97,14 @@ The included `render.yaml` defines a Go web service on the `master` branch.
 ```text
 FRONTEND_ORIGIN=https://your-gridking-frontend.vercel.app
 FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_WEB_API_KEY=your-firebase-web-api-key
 FIREBASE_SERVICE_ACCOUNT_JSON={complete service-account JSON on one line}
 ```
 
 5. Deploy the service.
 6. Confirm `https://your-service.onrender.com/health` returns `{"status":"ok"}`.
 
-The Blueprint uses one Starter instance because matchmaking and live matches are held in memory. Do not increase the instance count without adding shared matchmaking/session infrastructure such as Redis or a dedicated message broker. A continuously available paid instance is appropriate for production WebSockets; sleeping instances interrupt live connections.
+The Blueprint uses one Free instance because matchmaking and live matches are held in memory. Do not increase the instance count without adding shared matchmaking/session infrastructure such as Redis or a dedicated message broker. The Free service can sleep while inactive, so the first request may have a cold-start delay. A continuously available paid instance is appropriate for production WebSockets.
 
 After Render is live, use its URLs in the frontend:
 
@@ -118,15 +121,18 @@ Use this order for a first production deployment:
 2. Deploy Firestore rules from the frontend repository.
 3. Deploy this backend to Render with a temporary or known frontend origin.
 4. Deploy the frontend to Vercel using the Render HTTPS/WSS URLs.
-5. Add the Vercel hostname to Firebase Authorized Domains.
-6. Set `FRONTEND_ORIGIN` in Render to the exact Vercel origin.
-7. Redeploy/restart Render and perform an online match check.
+5. Set `FRONTEND_ORIGIN` in Render to the exact Vercel origin.
+6. Redeploy/restart Render and perform an online match check.
 
 ## HTTP API
 
 ```text
 GET  /health                 Public health check
+POST /auth/register          Create a Firebase account and GridKing profile
+POST /auth/login             Authenticate with email and password
+POST /auth/refresh           Exchange a refresh token for a new ID token
 POST /api/profiles           Create the authenticated player's profile
+POST /api/auth/logout        Revoke the player's Firebase refresh tokens
 GET  /api/profiles/me        Read the authenticated player's profile
 GET  /api/leaderboard        Read ranked profiles
 POST /api/bot/start          Create/reset a server-owned bot session
