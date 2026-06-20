@@ -8,6 +8,7 @@ import (
 	"GridKing-Backend/internal/auth"
 	"GridKing-Backend/internal/profile"
 	"GridKing-Backend/internal/realtime"
+
 	firebaseauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 )
@@ -175,10 +176,21 @@ func (s *Server) websocket(c *gin.Context) {
 }
 
 func (s *Server) cors() gin.HandlerFunc {
+	allowedOrigins := strings.Split(s.origin, ",")
+	for i := range allowedOrigins {
+		allowedOrigins[i] = strings.TrimRight(strings.TrimSpace(allowedOrigins[i]), "/")
+	}
+
 	return func(c *gin.Context) {
 		if s.origin != "" {
-			c.Header("Access-Control-Allow-Origin", s.origin)
-			c.Header("Vary", "Origin")
+			reqOrigin := c.GetHeader("Origin")
+			for _, o := range allowedOrigins {
+				if o == reqOrigin {
+					c.Header("Access-Control-Allow-Origin", reqOrigin)
+					c.Header("Vary", "Origin")
+					break
+				}
+			}
 		}
 		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")

@@ -4,11 +4,13 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"GridKing-Backend/internal/game"
 	"GridKing-Backend/internal/profile"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -68,11 +70,25 @@ type event struct {
 
 func NewHub(store MatchStore) *Hub {
 	allowedOrigin := os.Getenv("FRONTEND_ORIGIN")
+	origins := strings.Split(allowedOrigin, ",")
+	for i := range origins {
+		origins[i] = strings.TrimRight(strings.TrimSpace(origins[i]), "/")
+	}
+
 	return &Hub{
 		matches: make(map[string]*Match),
 		store:   store,
 		upgrader: websocket.Upgrader{CheckOrigin: func(r *http.Request) bool {
-			return allowedOrigin == "" || r.Header.Get("Origin") == allowedOrigin
+			if allowedOrigin == "" {
+				return true
+			}
+			reqOrigin := r.Header.Get("Origin")
+			for _, o := range origins {
+				if o == reqOrigin {
+					return true
+				}
+			}
+			return false
 		}},
 	}
 }
