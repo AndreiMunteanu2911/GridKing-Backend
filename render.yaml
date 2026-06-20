@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: gridking-backend
+    runtime: go
+    branch: master
+    plan: starter
+    numInstances: 1
+    buildCommand: go build -o gridking ./cmd/server
+    startCommand: ./gridking
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
