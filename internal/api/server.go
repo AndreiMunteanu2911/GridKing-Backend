@@ -24,7 +24,7 @@ type Server struct {
 }
 
 func NewServer(profiles *profile.Store, verifier *auth.Verifier, identity *auth.IdentityService, authClient *firebaseauth.Client, hub *realtime.Hub, origin string) *Server {
-	return &Server{profiles: profiles, verifier: verifier, identity: identity, auth: authClient, hub: hub, bots: NewBotManager(), origin: strings.TrimRight(origin, "/")}
+	return &Server{profiles: profiles, verifier: verifier, identity: identity, auth: authClient, hub: hub, bots: NewBotManager(profiles), origin: strings.TrimRight(origin, "/")}
 }
 
 func (s *Server) Router() *gin.Engine {
@@ -40,6 +40,18 @@ func (s *Server) Router() *gin.Engine {
 	secured.POST("/auth/logout", s.logout)
 	secured.GET("/profiles/me", s.getProfile)
 	secured.GET("/leaderboard", s.leaderboard)
+	secured.GET("/matches", s.matches)
+	secured.GET("/matches/:id", s.match)
+	secured.GET("/achievements", s.achievements)
+	secured.GET("/friends", s.friends)
+	secured.GET("/friends/requests", s.friendRequests)
+	secured.GET("/friends/search", s.searchPlayers)
+	secured.POST("/friends/request", s.sendFriendRequest)
+	secured.POST("/friends/respond", s.respondFriendRequest)
+	secured.POST("/friends/presence", s.setPresenceVisibility)
+	secured.DELETE("/friends/:uid", s.removeFriend)
+	secured.GET("/puzzles/daily", s.dailyPuzzle)
+	secured.POST("/puzzles/:id/complete", s.completePuzzle)
 	secured.POST("/bot/start", s.bots.Start)
 	secured.POST("/bot/move", s.bots.Move)
 	return router
@@ -193,7 +205,7 @@ func (s *Server) cors() gin.HandlerFunc {
 			}
 		}
 		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)
 			return

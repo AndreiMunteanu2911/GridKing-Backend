@@ -24,6 +24,16 @@ type Move struct {
 	Path []int `json:"path"`
 }
 
+type MoveAnalysis struct {
+	Ply            int    `firestore:"ply" json:"ply"`
+	PlayedMove     Move   `firestore:"played_move" json:"played_move"`
+	BestMove       Move   `firestore:"best_move" json:"best_move"`
+	ScoreBefore    int    `firestore:"score_before" json:"score_before"`
+	ScoreAfter     int    `firestore:"score_after" json:"score_after"`
+	ScoreLoss      int    `firestore:"score_loss" json:"score_loss"`
+	Classification string `firestore:"classification" json:"classification"`
+}
+
 type State struct {
 	Board  [64]int `json:"board"`
 	Turn   Color   `json:"turn"`
@@ -118,6 +128,21 @@ func (s State) Apply(move Move) (State, error) {
 		next.Reason = "no_moves"
 	}
 	return next, nil
+}
+
+func (s State) CapturedPieces(move Move) []int {
+	captured := make([]int, 0, len(move.Path)-1)
+	for i := 1; i < len(move.Path); i++ {
+		from, to := move.Path[i-1], move.Path[i]
+		if abs(from/8-to/8) != 2 {
+			continue
+		}
+		middle := ((from/8+to/8)/2)*8 + (from%8+to%8)/2
+		if s.Board[middle] != Empty {
+			captured = append(captured, s.Board[middle])
+		}
+	}
+	return captured
 }
 
 func (s State) WithWinner(winner Color, reason string) State {
