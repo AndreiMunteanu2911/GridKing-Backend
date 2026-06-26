@@ -61,7 +61,24 @@ func (s *Store) CompletePuzzle(ctx context.Context, uid, puzzleID string, move g
 	if err := puzzleDoc.DataTo(&puzzle); err != nil {
 		return false, err
 	}
-	if !sameMove(move, puzzle.BestMove) {
+	legal := false
+	for _, candidate := range puzzle.State.LegalMoves() {
+		if sameMove(move, candidate) {
+			legal = true
+			break
+		}
+	}
+	if !legal {
+		return false, nil
+	}
+	bestMove := puzzle.BestMove
+	if len(bestMove.Path) < 2 {
+		ranked := bot.RankMoves(puzzle.State, 5, bot.Balanced)
+		if len(ranked) > 0 {
+			bestMove = ranked[0].Move
+		}
+	}
+	if !sameMove(move, bestMove) {
 		return false, nil
 	}
 	userRef := s.client.Collection("users").Doc(uid)
